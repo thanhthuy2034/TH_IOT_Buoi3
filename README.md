@@ -2,8 +2,8 @@
 
 ## Thông tin sinh viên
 
-- **Họ và tên:** Lê Thanh Thủy
-- **Mã sinh viên:** B23DCCN809
+- **Họ và tên:** Nguyễn Doãn Hợp
+- **Mã sinh viên:** B23DCCN350
 
 ## Cấu trúc thư mục
 
@@ -15,6 +15,10 @@ TH_IOT_Buoi3/
 ├── Bai2/
 │   ├── sensor_server_bai2.py
 │   └── monitor_client_bai2.py
+├── Bai3/
+│   ├── light_server_bai3.py
+│   ├── light_controller_bai3.py
+│   └── light_monitor_bai3.py
 └── README.md
 ```
 
@@ -24,6 +28,9 @@ TH_IOT_Buoi3/
 | [Bai1/coap_client_bai1.py](Bai1/coap_client_bai1.py) | Gửi yêu cầu đến server và cung cấp menu thử nghiệm. |
 | [Bai2/sensor_server_bai2.py](Bai2/sensor_server_bai2.py) | Mô phỏng ba cảm biến nhiệt độ/độ ẩm, cập nhật dữ liệu mỗi 3 giây và trả JSON qua GET. |
 | [Bai2/monitor_client_bai2.py](Bai2/monitor_client_bai2.py) | GET định kỳ mỗi 3 giây, hiển thị dữ liệu, cảnh báo và thống kê thời gian phản hồi. |
+| [Bai3/light_server_bai3.py](Bai3/light_server_bai3.py) | Quản lý đèn light01, hỗ trợ GET/PUT và thông báo CoAP Observe khi trạng thái đổi. |
+| [Bai3/light_controller_bai3.py](Bai3/light_controller_bai3.py) | Menu ON/OFF/STATUS/EXIT để điều khiển và truy vấn đèn. |
+| [Bai3/light_monitor_bai3.py](Bai3/light_monitor_bai3.py) | Đăng ký Observe, nhận trạng thái ban đầu và các thông báo từ server. |
 | [README.md](README.md) | Hướng dẫn cài đặt, chạy và kiểm tra chương trình. |
 
 ## Bài 1: Gửi và nhận thông điệp CoAP cơ bản
@@ -59,12 +66,12 @@ Server hiển thị cổng và URI tài nguyên khi khởi động. Giữ termin
 python Bai1/coap_client_bai1.py
 ```
 
-Nhập mã sinh viên `B23DCCN809` và họ tên `Lê Thanh Thủy`. Nếu bỏ trống, chương trình dùng giá trị mặc định trong mã nguồn là `B23DCCN001` và `Nguyen Van A`.
+Nhập mã sinh viên `B23DCCN350` và họ tên `Nguyễn Doãn Hợp`. Nếu bỏ trống, chương trình dùng giá trị mặc định trong mã nguồn là `B23DCCN001` và `Nguyen Van A`.
 
 Client tự gửi một yêu cầu GET, sau đó gửi POST với nội dung:
 
 ```text
-Xin chao tu CoAP Client - B23DCCN809 - Lê Thanh Thủy
+Xin chao tu CoAP Client - B23DCCN350 - Nguyễn Doãn Hợp
 ```
 
 Sau hai yêu cầu ban đầu, client hiển thị menu:
@@ -342,3 +349,144 @@ received_at,device_id,temperature,humidity,timestamp,response_ms
 2026-10-31T16:53:16,sensor02,28.6,67.8,2026-10-31T16:53:14,2.05
 2026-10-31T16:53:39,sensor03,37.5,46.9,2026-10-31T16:53:38,7.48
 ```
+
+## Bài 3: Giám sát và điều khiển đèn thông minh bằng CoAP Observe
+
+### Môi trường và tài nguyên
+
+- Sinh viên: **Nguyễn Doãn Hợp — B23DCCN350**.
+- Đã kiểm tra trên Windows, Python **3.11.9**, **aiocoap 0.4.17**. Các mô-đun còn lại thuộc thư viện chuẩn Python.
+- Thiết bị: `light01`; trạng thái ban đầu: `OFF`, lưu trong RAM. Khởi động lại server sẽ trở về `OFF`.
+- Địa chỉ server: `127.0.0.1`, cổng **UDP 5683**.
+- URI: **`coap://127.0.0.1:5683/iot/lab/light01/status`**.
+- Dừng server Bài 1/Bài 2 trước khi chạy Bài 3 vì cùng dùng cổng `5683`.
+
+| Chức năng | Yêu cầu | Phản hồi |
+| --- | --- | --- |
+| Xem trạng thái | GET | `2.05 Content`, JSON trạng thái hiện tại. |
+| Điều khiển | PUT với JSON `device_id` và `command` | `2.04 Changed`, JSON trạng thái sau xử lý. |
+| Theo dõi | GET có tùy chọn `Observe=0` | Trạng thái ban đầu và thông báo khi trạng thái đổi. |
+
+Payload PUT:
+
+```json
+{"device_id": "light01", "command": "ON"}
+```
+
+Payload GET, phản hồi PUT và thông báo Observe dùng Content-Format `application/json`:
+
+```json
+{"device_id": "light01", "status": "ON"}
+```
+
+### Cài đặt và chạy
+
+Chạy từ thư mục gốc `TH_IOT_Buoi3`. Tạo môi trường và cài thư viện một lần:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install aiocoap==0.4.17
+```
+
+**Terminal 1 — Server:**
+
+```powershell
+.\.venv\Scripts\python.exe -u Bai3/light_server_bai3.py
+```
+
+**Terminal 2 — Monitor:**
+
+```powershell
+.\.venv\Scripts\python.exe -u Bai3/light_monitor_bai3.py
+```
+
+**Terminal 3 — Controller:**
+
+```powershell
+.\.venv\Scripts\python.exe -u Bai3/light_controller_bai3.py
+```
+
+| Lệnh nhập ở Controller | Hành vi |
+| --- | --- |
+| `ON` | PUT bật đèn. |
+| `OFF` | PUT tắt đèn. |
+| `STATUS` | GET trạng thái hiện tại. |
+| `EXIT` | Thoát Controller và đóng CoAP context. |
+
+Controller chấp nhận cả chữ thường và bỏ khoảng trắng hai đầu. Lệnh khác được báo lỗi tại client. Nhấn `Ctrl+C` để dừng các chương trình; Monitor hủy đăng ký ở phía client và đóng context khi thoát.
+
+Có thể mở thêm terminal chạy cùng lệnh Monitor để theo dõi bằng nhiều client. Khi chạy trên hai máy, đặt `HOST` trong server và `SERVER_HOST` trong cả hai client thành địa chỉ IPv4 LAN của máy server, cho phép UDP `5683` trên tường lửa.
+
+### Cách triển khai Observe và xử lý lỗi
+
+Server kế thừa `resource.ObservableResource`. Khi PUT hợp lệ làm đổi trạng thái, server gọi `updated_state()` để thư viện gửi thông báo đến tất cả observer. Nếu gửi `ON` khi đèn đã `ON` hoặc `OFF` khi đèn đã `OFF`, server vẫn xác nhận `2.04 Changed` nhưng không gọi `updated_state()`.
+
+Monitor tạo **một GET với `observe=0`**, kiểm tra server đã chấp nhận Observe, sau đó dùng `async for notification in request.observation` để chờ thông báo. Không có vòng lặp GET định kỳ. Các dòng `GET request received` trên server khi phát thông báo là do aiocoap gọi lại `render_get` để tạo payload cho observer, không phải Monitor polling. Tham khảo [ObservableResource trong tài liệu aiocoap](https://aiocoap.readthedocs.io/en/latest/module/aiocoap.resource.html).
+
+| Trường hợp | Xử lý |
+| --- | --- |
+| JSON lỗi, UTF-8 lỗi, payload rỗng hoặc không phải object | `4.00 Bad Request`. |
+| Thiếu/sai `device_id`, thiếu lệnh hoặc lệnh khác `ON`/`OFF` | `4.00 Bad Request`; trạng thái được giữ nguyên. |
+| PUT khai báo Content-Format khác JSON | `4.15 Unsupported Content Format`. Nếu không khai báo, server vẫn kiểm tra payload JSON. |
+| URI không tồn tại | `4.04 Not Found`. |
+| Server không phản hồi Controller hoặc đăng ký Observe ban đầu | Chờ tối đa 5 giây, báo timeout; có thể báo lỗi mạng sớm hơn. Controller tiếp tục nhận lệnh. |
+| Payload phản hồi sai cấu trúc | Client báo lỗi dữ liệu thay vì phát sinh traceback. |
+
+Sau khi đăng ký thành công, Monitor chờ thông báo không giới hạn thời gian vì đèn có thể giữ nguyên trạng thái lâu. Nếu server tắt trong lúc chờ, Monitor có thể chưa phát hiện ngay; khi thư viện báo lỗi hoặc kết thúc Observe, chương trình thông báo và đóng kết nối. Chạy lại Monitor để đăng ký sau khi server khởi động lại.
+
+### Kiểm tra và kết quả thực tế
+
+Đã chạy ngày **31/10/2026** trên cùng máy qua UDP loopback. Log Bài 1/Bài 2 phía trên được giữ từ README có sẵn; các kết quả dưới đây là kiểm tra riêng cho Bài 3.
+
+Đã thực hiện kiểm thử tích hợp qua UDP `127.0.0.1:56830` và chạy thử các chương trình tại cổng `5683`. Kết quả:
+
+| Kiểm tra | Kết quả |
+| --- | --- |
+| GET ban đầu | `2.05 Content`, `light01`, `OFF`, Content-Format JSON. |
+| PUT ON/OFF và GET sau mỗi lần | `2.04 Changed`, trạng thái đúng lệnh. |
+| Hai observer đồng thời | Cả hai nhận trạng thái ban đầu `OFF`, cập nhật `ON`, rồi `OFF`. |
+| PUT lặp cùng trạng thái | Không có thông báo mới trong cửa sổ kiểm thử; demo hai Monitor cũng chỉ có hai cập nhật. |
+| PUT không hợp lệ | 10 payload sai trả `4.00 Bad Request`, trạng thái vẫn `OFF`. Content-Format sai trả `4.15`. |
+| URI không tồn tại | `4.04 Not Found`. |
+| Menu Controller | `STATUS`, `ON`, `OFF`, `EXIT` hoạt động; lệnh `INVALID` bị từ chối. |
+| Chạy hai client khi server đã dừng | Cả hai báo `Loi giao tiep ... NetworkError`, không có traceback; Controller vẫn nhận `EXIT`. |
+
+Ba bài kiểm thử tích hợp đều đạt. Ngoài ra đã chạy server, hai Monitor và Controller thành các tiến trình riêng; Controller nhận lần lượt `STATUS`, `ON`, `ON`, `STATUS`, `OFF`, `INVALID`, `EXIT` qua stdin. Vì nhập tự động nên log không hiển thị lệnh sau lời nhắc. Các tiến trình server/Monitor được dừng bởi trình chạy demo; lần demo này không kiểm chứng phím `Ctrl+C` thủ công. Chưa kiểm tra trên hai máy hoặc mô phỏng mất gói mạng.
+
+Log Monitor thực tế (cả hai Monitor nhận cùng chuỗi trạng thái):
+
+```text
+Observe registration successful
+Nhan Ctrl+C de dung.
+
+[17:14:11] Initial State
+Device: light01
+Status: OFF
+
+[17:14:11] State Updated
+Device: light01
+Status: ON
+
+[17:14:12] State Updated
+Device: light01
+Status: OFF
+```
+
+Log server khi nhận hai lệnh ON liên tiếp:
+
+```text
+PUT request received:
+Device: light01
+Command: ON
+Light state changed: OFF -> ON
+Notify observers: ON
+GET request received: /iot/lab/light01/status
+GET request received: /iot/lab/light01/status
+
+PUT request received:
+Device: light01
+Command: ON
+Light state unchanged: ON; khong gui thong bao Observe
+```
+
+Các mở rộng đã thực hiện: xác thực payload/lệnh, hỗ trợ nhiều observer và không thông báo khi trạng thái giữ nguyên.

@@ -1,0 +1,49 @@
+# Moi truong Python cuc bo
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# Bytecode va cache Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# San pham dong goi Python
+build/
+dist/
+*.egg-info/
+
+# Cau hinh IDE cuc bo
+.idea/
+.vscode/
+*.code-workspace
+
+# Tep tam, sao luu va tep he dieu hanh
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+~$*
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Tep ho tro kiem thu va cai dat cuc bo, khong nop bai
+/Bai3/test_bai3.py
+/Bai3/requirements.txt
+/Bai3/logs/
+
+# Log phat sinh
+*.log
